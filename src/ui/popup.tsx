@@ -5,10 +5,6 @@ import * as ReactDOM from "react-dom";
 import "../styles/popup.css";
 
 const Popup = () => {
-  // SET STATE FOR ACTIVE FEATURES IN STATE SETTER
-  // USEEFFECT ON UPDATE OF STATE AND STORE STATE IN LOCAL STORAGE
-  // ACCESS LOCAL STORAGE IN CONTENT.TS
-
   interface Feature {
     name: string;
     id: string;
