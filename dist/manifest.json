@@ -18,11 +18,11 @@
     "scripts": ["js/background.js"],
     "persistent": true
   },
-  "permissions": ["https://*/*", "storage"],
+  "permissions": ["storage"],
   "content_security_policy": "default-src 'self';",
   "content_scripts": [
     {
-      "matches": ["https://*/*"],
+      "matches": ["*://www.youtube.com/*"],
       "js": ["js/content.js"]
     }
   ]
