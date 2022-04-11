@@ -7,12 +7,16 @@
 //   });
 // });
 
+// Global variables
 let features = [];
 let activeFeatures = [];
 let pathName = location.pathname;
 let currentPage = "";
 let chromeControls = false;
 
+// LISTENERS
+
+// Listens for page change
 new MutationObserver(() => {
   const url = location.pathname;
   if (url !== pathName) {
@@ -22,6 +26,7 @@ new MutationObserver(() => {
   }
 }).observe(document, { subtree: true, childList: true });
 
+// Listens for Chrome Controls to appear (ie. button bar on video)
 new MutationObserver(() => {
   const videoControls = document.querySelector(".ytp-chrome-controls");
   if (videoControls) {
@@ -29,6 +34,7 @@ new MutationObserver(() => {
   }
 }).observe(document, { subtree: true, childList: true });
 
+// Checks what page user is on and sets currentPage
 function checkPage() {
   switch (pathName) {
     case "/":
@@ -50,6 +56,7 @@ function checkPage() {
   }
 }
 
+// Waits for page to load then runs features
 document.addEventListener("readystatechange", (event) => {
   if (document.readyState === "complete") {
     checkPage();
@@ -57,6 +64,9 @@ document.addEventListener("readystatechange", (event) => {
   }
 });
 
+// CHROME STORAGE
+
+// Gets active feature list of Chrome Storage
 function getActiveFeatureList() {
   chrome.storage.sync.get("featureList", (result) => {
     const featureObject = result.featureList;
@@ -71,15 +81,23 @@ function getActiveFeatureList() {
 
 getActiveFeatureList();
 
+// Listens for change in Chrome Storage
 chrome.storage.onChanged.addListener(function (changes, area) {
   getActiveFeatureList();
 });
 
+// RUN FEATURES
+// Features check if:
+// 1) Name of feature is included in active features
+// 2) That the currentPage is set to the page the feature should run on
+// 3) *EVENTUALLY* Checks if feature is for free or paid users
 function runFeatures(pref) {
   if (pref.includes("testFeature") && currentPage === "home") testFeature();
   if (pref.includes("testFeatureTwo") && currentPage === "video")
     testFeatureTwo();
 }
+
+// FEATURE FUNCTIONS
 
 function testFeature() {
   console.log("test feature one");
@@ -102,7 +120,9 @@ async function testFeatureTwo() {
   }, 500);
 }
 
-// Helper Functions
+// HELPER FUNCTIONS
+
+// Helper variables
 let startTime;
 let endTime;
 let clickCount = 0;
