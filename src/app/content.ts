@@ -62,7 +62,7 @@ function checkPage() {
 document.addEventListener("readystatechange", (event) => {
   if (document.readyState === "complete") {
     checkPage();
-    runFeatures(activeFeatures);
+    runFeatures(features);
   }
 });
 
@@ -73,13 +73,17 @@ function getActiveFeatureList() {
   chrome.storage.sync.get("featureList", (result) => {
     const featureObject = result.featureList;
     featureObject.forEach((element) => {
-      features.push({
-        id: element.id,
-        on: element.checked,
-        skipSpeed: element.skipSpeed,
-      });
-      if (element.checked) {
-        activeFeatures.push(element);
+      let existingIds = [];
+      features.forEach((object) => existingIds.push(object.id));
+      if (existingIds.includes(element.id)) {
+        console.log("feature already in list – updating");
+        let index = existingIds.indexOf(element.id);
+        features[index] = element;
+        runFeatures(features);
+      } else {
+        console.log("feature not in list - adding");
+        features.push(element);
+        runFeatures(features);
       }
     });
   });
@@ -99,37 +103,43 @@ chrome.storage.onChanged.addListener(function (changes, area) {
 // 3) *EVENTUALLY* Checks if feature is for free or paid users
 function runFeatures(pref) {
   console.log(pref);
-  // ADD A FOR EACH HERE
-  // then for each pref do .includes(id)
   pref.forEach((feature) => {
-    if (feature.id === "testFeature" && currentPage === "video") testFeature();
+    if (feature.id === "testFeature" && currentPage === "video")
+      AdjustSkipSpeed(feature.checked);
     if (feature.id === "testFeatureTwo" && currentPage === "video")
-      testFeatureTwo();
+      LoopSection(feature.checked);
   });
 }
 
 // FEATURE FUNCTIONS
 
-function testFeature() {
-  console.log("Skip speed on!");
-  document.addEventListener("keydown", skipSpeed);
+function AdjustSkipSpeed(on) {
+  if (on) {
+    console.log("Skip speed on!");
+    document.addEventListener("keydown", skipSpeed);
+  } else {
+    console.log("removing skip speed listener");
+    document.removeEventListener("keydown", skipSpeed);
+  }
 }
 
-async function testFeatureTwo() {
-  const interval = setInterval(() => {
-    if (chromeControls) {
-      clearInterval(interval);
-      const volumeArea = document.querySelector(".ytp-volume-area");
+async function LoopSection(on) {
+  if (on) {
+    const interval = setInterval(() => {
+      if (chromeControls && !document.getElementById("yes-loop-button")) {
+        clearInterval(interval);
+        const volumeArea = document.querySelector(".ytp-volume-area");
 
-      volumeArea.insertAdjacentHTML(
-        "afterend",
-        '<button id="yes-loop-button">LOOP</button>'
-      );
+        volumeArea.insertAdjacentHTML(
+          "afterend",
+          '<button id="yes-loop-button">LOOP</button>'
+        );
 
-      const yesLoopButton = document.getElementById("yes-loop-button");
-      yesLoopButton.addEventListener("click", manageLoop);
-    }
-  }, 500);
+        const yesLoopButton = document.getElementById("yes-loop-button");
+        yesLoopButton.addEventListener("click", manageLoop);
+      }
+    }, 500);
+  }
 }
 
 // HELPER FUNCTIONS
@@ -209,27 +219,51 @@ function startLoop() {
 }
 
 function skipSpeed(evt) {
-  const skipSpeed = Number(
-    activeFeatures.find((elem) => elem.skipSpeed).skipSpeed
-  );
-  let video = document.querySelector("video");
-  let skipString = document.querySelector(
+  let uiLabel = document.querySelector<HTMLDivElement>(
     ".ytp-doubletap-tooltip-label"
-  ).innerHTML;
-  let skipSubstring = document
-    .querySelector(".ytp-doubletap-tooltip-label")
-    .innerHTML.substring(2);
-  let newSubstring = skipSpeed + " " + skipSubstring;
+  );
+  uiLabel.style.color = "transparent";
+  const skipSpeed = Number(features.find((elem) => elem.skipSpeed).skipSpeed);
+  let video = document.querySelector("video");
+  let seeking = false;
 
-  console.log(newSubstring);
-  console.log(skipSpeed);
-  if (evt.keyCode == 39) {
-    console.log("right arrow key");
-    video.currentTime = video.currentTime + skipSpeed - 5;
-    skipString = newSubstring;
-  } else if (evt.keyCode == 37) {
-    console.log("left arrow key");
-    video.currentTime = video.currentTime + skipSpeed + 5;
-    skipString = newSubstring;
-  }
+  video.addEventListener("seeking", function () {
+    seeking = true;
+  });
+
+  video.addEventListener("seeked", function () {
+    seeking = false;
+  });
+
+  const seekingInterval = setInterval(() => {
+    if (!seeking) {
+      clearInterval(seekingInterval);
+      if (evt.keyCode == 39) {
+        video.currentTime = video.currentTime + skipSpeed - 5;
+        UpdateSkipUI(skipSpeed);
+      } else if (evt.keyCode == 37) {
+        video.currentTime = video.currentTime - skipSpeed + 5;
+        UpdateSkipUI(skipSpeed);
+      }
+    }
+  }, 10);
+}
+
+function UpdateSkipUI(speed) {
+  let uiLabel = document.querySelector<HTMLDivElement>(
+    ".ytp-doubletap-tooltip-label"
+  );
+  uiLabel.style.color = "transparent";
+
+  let updateUiInterval = setInterval(() => {
+    const element = <HTMLDivElement>(
+      document.querySelector(".ytp-doubletap-ui-legacy")
+    );
+    if (element.style.display == "") {
+      let subString = uiLabel.innerHTML.substring(2);
+      uiLabel.innerHTML = speed + " " + subString;
+      uiLabel.style.color = "white";
+      clearInterval(updateUiInterval);
+    }
+  }, 10);
 }
