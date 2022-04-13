@@ -14,6 +14,8 @@ let pathName = location.pathname;
 let currentPage = "";
 let chromeControls = false;
 
+console.log(activeFeatures);
+
 // LISTENERS
 
 // Listens for page change
@@ -71,9 +73,13 @@ function getActiveFeatureList() {
   chrome.storage.sync.get("featureList", (result) => {
     const featureObject = result.featureList;
     featureObject.forEach((element) => {
-      features.push({ id: element.id, on: element.checked });
+      features.push({
+        id: element.id,
+        on: element.checked,
+        skipSpeed: element.skipSpeed,
+      });
       if (element.checked) {
-        activeFeatures.push(element.id);
+        activeFeatures.push(element);
       }
     });
   });
@@ -92,15 +98,21 @@ chrome.storage.onChanged.addListener(function (changes, area) {
 // 2) That the currentPage is set to the page the feature should run on
 // 3) *EVENTUALLY* Checks if feature is for free or paid users
 function runFeatures(pref) {
-  if (pref.includes("testFeature") && currentPage === "home") testFeature();
-  if (pref.includes("testFeatureTwo") && currentPage === "video")
-    testFeatureTwo();
+  console.log(pref);
+  // ADD A FOR EACH HERE
+  // then for each pref do .includes(id)
+  pref.forEach((feature) => {
+    if (feature.id === "testFeature" && currentPage === "video") testFeature();
+    if (feature.id === "testFeatureTwo" && currentPage === "video")
+      testFeatureTwo();
+  });
 }
 
 // FEATURE FUNCTIONS
 
 function testFeature() {
-  console.log("test feature one");
+  console.log("Skip speed on!");
+  document.addEventListener("keydown", skipSpeed);
 }
 
 async function testFeatureTwo() {
@@ -194,4 +206,30 @@ function startLoop() {
       clearInterval(interval);
     }
   }, 10);
+}
+
+function skipSpeed(evt) {
+  const skipSpeed = Number(
+    activeFeatures.find((elem) => elem.skipSpeed).skipSpeed
+  );
+  let video = document.querySelector("video");
+  let skipString = document.querySelector(
+    ".ytp-doubletap-tooltip-label"
+  ).innerHTML;
+  let skipSubstring = document
+    .querySelector(".ytp-doubletap-tooltip-label")
+    .innerHTML.substring(2);
+  let newSubstring = skipSpeed + " " + skipSubstring;
+
+  console.log(newSubstring);
+  console.log(skipSpeed);
+  if (evt.keyCode == 39) {
+    console.log("right arrow key");
+    video.currentTime = video.currentTime + skipSpeed - 5;
+    skipString = newSubstring;
+  } else if (evt.keyCode == 37) {
+    console.log("left arrow key");
+    video.currentTime = video.currentTime + skipSpeed + 5;
+    skipString = newSubstring;
+  }
 }

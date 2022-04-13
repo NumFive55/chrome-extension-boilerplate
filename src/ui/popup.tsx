@@ -7,16 +7,32 @@ import "../styles/popup.css";
 const Popup = () => {
   interface Feature {
     name: string;
+    input: boolean;
     id: string;
     checked: boolean;
+    skipSpeed?: number;
   }
 
   const allFeatures: Feature[] = [
-    { name: "Test Feature", id: "testFeature", checked: false },
-    { name: "Test Feature Two", id: "testFeatureTwo", checked: false },
+    {
+      name: "Test Feature",
+      id: "testFeature",
+      input: true,
+      skipSpeed: 5,
+      checked: false,
+    },
+    {
+      name: "Test Feature Two",
+      id: "testFeatureTwo",
+      input: false,
+      checked: false,
+    },
   ];
 
   const [features, setFeatures] = useState(allFeatures);
+  const [inputValues, setInputValues] = useState({
+    skipSpeed: "",
+  });
 
   useEffect(() => {
     chrome.storage.sync.get("featureList", (result) => {
@@ -55,6 +71,27 @@ const Popup = () => {
     [features]
   );
 
+  const handleInputChange = useCallback(
+    (evt) => {
+      const value = evt.target.value;
+
+      const shallowFeatures = [...features];
+
+      const objectIndex = shallowFeatures.findIndex(
+        (elem) => elem.id === evt.target.id
+      );
+
+      const objectToUpdate = shallowFeatures[objectIndex];
+
+      objectToUpdate[evt.target.name] = evt.target.value;
+
+      shallowFeatures[objectIndex] = objectToUpdate;
+
+      setFeatures(shallowFeatures);
+    },
+    [features]
+  );
+
   return (
     <div className="popup-padded">
       {features.map((feature, index) => (
@@ -66,6 +103,15 @@ const Popup = () => {
             onChange={featureSelected}
             checked={feature.checked}
           ></input>
+          {feature.input && (
+            <input
+              type="number"
+              id={feature.id}
+              name="skipSpeed"
+              value={feature.skipSpeed}
+              onChange={handleInputChange}
+            ></input>
+          )}
         </div>
       ))}
     </div>
