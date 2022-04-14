@@ -27,12 +27,15 @@ const Popup = () => {
       input: false,
       checked: false,
     },
+    {
+      name: "Picture-in-picture",
+      id: "pictureInPicture",
+      input: false,
+      checked: false,
+    },
   ];
 
   const [features, setFeatures] = useState(allFeatures);
-  const [inputValues, setInputValues] = useState({
-    skipSpeed: "",
-  });
 
   useEffect(() => {
     chrome.storage.sync.get("featureList", (result) => {

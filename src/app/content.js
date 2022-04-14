@@ -7,6 +7,27 @@
 //   });
 // });
 
+// type PictureInPictureEventListener =
+//   | ((this: HTMLVideoElement, ev: PictureInPictureEvent) => any)
+//   | null;
+
+// interface HTMLVideoElement {
+//   autoPictureInPicture: boolean;
+//   disablePictureInPicture: boolean;
+//   requestPictureInPicture(): Promise<PictureInPictureWindow>;
+//   // onenterpictureinpicture: PictureInPictureEventListener;
+//   // onleavepictureinpicture: PictureInPictureEventListener;
+// }
+
+// interface Document {
+//   readonly pictureInPictureEnabled: boolean;
+//   exitPictureInPicture(): Promise<void>;
+// }
+
+// interface DocumentOrShadowRoot {
+//   readonly pictureInPictureElement: Element | null;
+// }
+
 // Global variables
 let features = [];
 let activeFeatures = [];
@@ -108,6 +129,8 @@ function runFeatures(pref) {
       AdjustSkipSpeed(feature.checked);
     if (feature.id === "testFeatureTwo" && currentPage === "video")
       LoopSection(feature.checked);
+    if (feature.id === "pictureInPicture" && currentPage === "video")
+      addPip(feature.checked);
   });
 }
 
@@ -123,7 +146,7 @@ function AdjustSkipSpeed(on) {
   }
 }
 
-async function LoopSection(on) {
+function LoopSection(on) {
   if (on) {
     const interval = setInterval(() => {
       if (chromeControls && !document.getElementById("yes-loop-button")) {
@@ -139,6 +162,30 @@ async function LoopSection(on) {
         yesLoopButton.addEventListener("click", manageLoop);
       }
     }, 500);
+  }
+}
+
+function addPip(on) {
+  let interval;
+  if (on) {
+    interval = setInterval(() => {
+      if (chromeControls && !document.getElementById("yes-pip-button")) {
+        clearInterval(interval);
+        const miniDisplayButton = document.querySelector(
+          ".ytp-miniplayer-button"
+        );
+
+        miniDisplayButton.insertAdjacentHTML(
+          "beforebegin",
+          '<button id="yes-pip-button">PIP</button>'
+        );
+
+        const yesPipButton = document.getElementById("yes-pip-button");
+        yesPipButton.addEventListener("click", handlePip);
+      }
+    }, 500);
+  } else {
+    clearInterval(interval);
   }
 }
 
@@ -167,7 +214,7 @@ function manageLoop() {
 }
 
 function captureLoop(e) {
-  let objectClicked = <HTMLDivElement>e.target;
+  let objectClicked = e.target;
   let clickedObjectClasses = objectClicked.classList;
 
   if (clickedObjectClasses.value.includes("ytp-progress-bar")) {
@@ -177,7 +224,7 @@ function captureLoop(e) {
         if (startTime == undefined) {
           startTime = document.querySelector("video").currentTime;
           const node = document.querySelector(".ytp-scrubber-container");
-          const clone = <Element>node.cloneNode(true);
+          const clone = node.cloneNode(true);
           clone.classList.add("aLoop");
           clone.firstElementChild.insertAdjacentHTML(
             "afterbegin",
@@ -191,7 +238,7 @@ function captureLoop(e) {
         if (endTime == undefined) {
           endTime = document.querySelector("video").currentTime;
           const node = document.querySelector(".ytp-scrubber-container");
-          const clone = <Element>node.cloneNode(true);
+          const clone = node.cloneNode(true);
           clone.classList.add("bLoop");
           clone.firstElementChild.insertAdjacentHTML(
             "afterbegin",
@@ -219,9 +266,8 @@ function startLoop() {
 }
 
 function skipSpeed(evt) {
-  let uiLabel = document.querySelector<HTMLDivElement>(
-    ".ytp-doubletap-tooltip-label"
-  );
+  let uiLabel =
+    document.querySelector < HTMLDivElement > ".ytp-doubletap-tooltip-label";
   uiLabel.style.color = "transparent";
   const skipSpeed = Number(features.find((elem) => elem.skipSpeed).skipSpeed);
   let video = document.querySelector("video");
@@ -250,15 +296,12 @@ function skipSpeed(evt) {
 }
 
 function UpdateSkipUI(speed) {
-  let uiLabel = document.querySelector<HTMLDivElement>(
-    ".ytp-doubletap-tooltip-label"
-  );
+  let uiLabel =
+    document.querySelector < HTMLDivElement > ".ytp-doubletap-tooltip-label";
   uiLabel.style.color = "transparent";
 
   let updateUiInterval = setInterval(() => {
-    const element = <HTMLDivElement>(
-      document.querySelector(".ytp-doubletap-ui-legacy")
-    );
+    const element = document.querySelector(".ytp-doubletap-ui-legacy");
     if (element.style.display == "") {
       let subString = uiLabel.innerHTML.substring(2);
       uiLabel.innerHTML = speed + " " + subString;
@@ -266,4 +309,15 @@ function UpdateSkipUI(speed) {
       clearInterval(updateUiInterval);
     }
   }, 10);
+}
+
+function handlePip() {
+  let video = document.querySelector("video");
+  if (document.pictureInPictureElement) {
+    document.exitPictureInPicture();
+  } else {
+    if (document.pictureInPictureEnabled) {
+      video.requestPictureInPicture();
+    }
+  }
 }
